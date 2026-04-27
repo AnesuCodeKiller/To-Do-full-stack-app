@@ -1,1 +1,5 @@
 node_modules
+_pycache__
+*.pyc
+.env
+.DS_Store
