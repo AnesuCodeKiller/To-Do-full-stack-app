@@ -14,10 +14,7 @@ except ModuleNotFoundError:
     from app.database import init_db
 
 
-LOG_PATH = Path(__file__).resolve().parent / "app.log"
-
 logging.basicConfig(
-    filename=LOG_PATH,
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
@@ -27,8 +24,7 @@ app = FastAPI(title="To-Do Auth API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

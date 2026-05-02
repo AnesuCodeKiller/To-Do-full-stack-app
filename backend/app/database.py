@@ -1,26 +1,32 @@
 import os
 import psycopg2
-import psycopg2.extras
-from typing import Optional, List, Any
+from psycopg2.extras import DictCursor
+from dotenv import load_dotenv
+from pathlib import Path
+from typing import Optional
 
-# Get the database URL from environment variables
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# Load env vars from .env file
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
+    """Returns a connection to the PostgreSQL database."""
     if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL environment variable is not set. Please configure it in Vercel or your .env file.")
+        raise RuntimeError("DATABASE_URL environment variable is not set")
     
-    # Connect to the Postgres database
-    conn = psycopg2.connect(DATABASE_URL)
+    # Use DictCursor to emulate the behavior of sqlite3.Row
+    # This allows accessing columns by name like row['id']
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=DictCursor)
     return conn
 
 
 def init_db() -> None:
-    """Initialize the database tables if they don't exist."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            # Postgres uses SERIAL for auto-incrementing IDs
-            cur.execute(
+    """Initializes the database schema."""
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            # Users table
+            cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
@@ -31,25 +37,26 @@ def init_db() -> None:
                 )
                 """
             )
-            cur.execute(
+            # Todos table
+            cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS todos (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                     title TEXT NOT NULL,
                     completed BOOLEAN NOT NULL DEFAULT FALSE,
-                    due_date TEXT,
-                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    due_date TEXT
                 )
                 """
             )
-        conn.commit()
+            connection.commit()
 
 
-def create_user(username: str, email: Optional[str], password_hash: str) -> Any:
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute(
+def create_user(username: str, email: Optional[str], password_hash: str):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
                 """
                 INSERT INTO users (username, email, password_hash)
                 VALUES (%s, %s, %s)
@@ -57,66 +64,62 @@ def create_user(username: str, email: Optional[str], password_hash: str) -> Any:
                 """,
                 (username, email, password_hash),
             )
-            user = cur.fetchone()
-            conn.commit()
-            if user is None:
-                raise RuntimeError("Created user could not be loaded")
+            user = cursor.fetchone()
+            connection.commit()
             return user
 
 
-def get_user_by_username(username: str) -> Optional[Any]:
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute(
+def get_user_by_username(username: str):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
                 "SELECT id, username, email, password_hash, created_at FROM users WHERE username = %s",
                 (username,),
             )
-            return cur.fetchone()
+            return cursor.fetchone()
 
 
-def get_user_by_id(user_id: int) -> Optional[Any]:
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute(
+def get_user_by_id(user_id: int):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
                 "SELECT id, username, email, created_at FROM users WHERE id = %s",
                 (user_id,),
             )
-            return cur.fetchone()
+            return cursor.fetchone()
 
 
-def create_todo(user_id: int, title: str, due_date: Optional[str] = None) -> Any:
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute(
+def create_todo(user_id: int, title: str, due_date: Optional[str] = None):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
                 """
-                INSERT INTO todos (user_id, title, completed, due_date) 
-                VALUES (%s, %s, FALSE, %s) 
+                INSERT INTO todos (user_id, title, completed, due_date)
+                VALUES (%s, %s, FALSE, %s)
                 RETURNING id, user_id, title, completed, due_date
                 """,
                 (user_id, title, due_date),
             )
-            todo = cur.fetchone()
-            conn.commit()
-            if todo is None:
-                raise RuntimeError("Created todo could not be loaded")
+            todo = cursor.fetchone()
+            connection.commit()
             return todo
 
 
-def get_todos_by_user(user_id: int) -> List[Any]:
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute(
+def get_todos_by_user(user_id: int):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
                 "SELECT id, user_id, title, completed, due_date FROM todos WHERE user_id = %s ORDER BY id DESC",
                 (user_id,),
             )
-            return cur.fetchall()
+            return cursor.fetchall()
 
 
-def update_todo(user_id: int, todo_id: int, title: Optional[str] = None, completed: Optional[bool] = None, due_date: Optional[str] = None) -> Optional[Any]:
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute("SELECT * FROM todos WHERE id = %s AND user_id = %s", (todo_id, user_id))
-            todo = cur.fetchone()
+def update_todo(user_id: int, todo_id: int, title: Optional[str] = None, completed: Optional[bool] = None, due_date: Optional[str] = None):
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM todos WHERE id = %s AND user_id = %s", (todo_id, user_id))
+            todo = cursor.fetchone()
             if not todo:
                 return None
             
@@ -128,26 +131,26 @@ def update_todo(user_id: int, todo_id: int, title: Optional[str] = None, complet
             else:
                 new_due_date = due_date if due_date is not None else todo["due_date"]
             
-            cur.execute(
+            cursor.execute(
                 """
                 UPDATE todos 
                 SET title = %s, completed = %s, due_date = %s 
-                WHERE id = %s AND user_id = %s
+                WHERE id = %s AND user_id = %s 
                 RETURNING id, user_id, title, completed, due_date
                 """,
                 (new_title, new_completed, new_due_date, todo_id, user_id),
             )
-            updated_todo = cur.fetchone()
-            conn.commit()
-            return updated_todo
+            updated = cursor.fetchone()
+            connection.commit()
+            return updated
 
 
 def delete_todo(user_id: int, todo_id: int) -> bool:
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
                 "DELETE FROM todos WHERE id = %s AND user_id = %s",
                 (todo_id, user_id)
             )
-            conn.commit()
-            return cur.rowcount > 0
+            connection.commit()
+            return cursor.rowcount > 0

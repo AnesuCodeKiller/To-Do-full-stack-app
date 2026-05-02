@@ -1,6 +1,5 @@
 fastapi
 uvicorn[standard]
-
 bcrypt
 python-dotenv
 pydantic-settings
@@ -10,5 +9,5 @@ passlib
 passlib[bcrypt]
 SQLAlchemy
 asyncpg
-psycopg2-binary
 fastapi-users[sqlalchemy]
+psycopg2-binary
