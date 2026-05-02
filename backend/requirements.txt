@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+
+bcrypt
+python-dotenv
+pydantic-settings
+pydantic
+python-multipart
+passlib
+passlib[bcrypt]
+SQLAlchemy
+asyncpg
+fastapi-users[sqlalchemy]
