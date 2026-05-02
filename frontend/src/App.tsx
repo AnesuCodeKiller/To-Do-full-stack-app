@@ -233,7 +233,7 @@ function App() {
           due_date: newTodoDueDate ? new Date(newTodoDueDate).toISOString() : null
         }
       });
-      setTodos([newTodo, ...todos]);
+      setTodos(prev => [newTodo, ...prev]);
       setNewTodoTitle("");
       setNewTodoDueDate("");
     } catch (err) {
@@ -242,27 +242,35 @@ function App() {
   }
 
   async function toggleTodo(todo: Todo) {
+    // Optimistic update
+    setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, completed: !t.completed } : t));
+    
     try {
       const updated = await apiRequest<Todo>(`/todos/${todo.id}`, {
         method: "PUT",
         token,
         body: { completed: !todo.completed }
       });
-      setTodos(todos.map(t => t.id === todo.id ? updated : t));
+      // Sync with server response
+      setTodos(prev => prev.map(t => t.id === todo.id ? updated : t));
     } catch (err) {
       setError("Failed to update todo");
+      void fetchTodos(); // Re-sync on error
     }
   }
 
   async function deleteTodo(id: number) {
+    // Optimistic removal
+    setTodos(prev => prev.filter(t => t.id !== id));
+    
     try {
       await apiRequest(`/todos/${id}`, {
         method: "DELETE",
         token
       });
-      setTodos(todos.filter(t => t.id !== id));
     } catch (err) {
       setError("Failed to delete todo");
+      void fetchTodos(); // Re-sync on error
     }
   }
 
