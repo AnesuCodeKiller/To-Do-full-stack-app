@@ -1,0 +1,406 @@
+:root {
+  color: #172026;
+  background: #eef2f3;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.page {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(47, 117, 104, 0.12), transparent 35%),
+    linear-gradient(315deg, rgba(188, 85, 64, 0.12), transparent 42%),
+    #eef2f3;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #dbe3e5;
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(23, 32, 38, 0.12);
+  width: min(100%, 440px);
+}
+
+.auth-panel {
+  padding: 28px;
+}
+
+.auth-header {
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  color: #2f7568;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: 2rem;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.muted {
+  color: #5f6f76;
+  margin: 10px 0 0;
+}
+
+form {
+  display: grid;
+  gap: 16px;
+}
+
+label {
+  color: #34444c;
+  display: grid;
+  font-size: 0.95rem;
+  font-weight: 700;
+  gap: 7px;
+}
+
+input {
+  border: 1px solid #b8c7cc;
+  border-radius: 6px;
+  color: #172026;
+  outline: none;
+  padding: 12px 13px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+  width: 100%;
+}
+
+input:focus {
+  border-color: #2f7568;
+  box-shadow: 0 0 0 3px rgba(47, 117, 104, 0.16);
+}
+
+button {
+  align-items: center;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 46px;
+  padding: 12px 16px;
+}
+
+form button {
+  background: #2f7568;
+  color: #ffffff;
+  margin-top: 4px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.link-button {
+  background: transparent;
+  color: #bc5540;
+  margin-top: 14px;
+  padding-inline: 0;
+  width: 100%;
+}
+
+.secondary-button {
+  background: #172026;
+  color: #ffffff;
+  width: 100%;
+}
+
+.alert {
+  border-radius: 6px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  padding: 11px 12px;
+}
+
+.error {
+  background: #ffe8e2;
+  color: #8f2e1b;
+}
+
+.success {
+  background: #e0f2ea;
+  color: #206150;
+}
+
+.center-panel {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 36px;
+  text-align: center;
+}
+
+.spinner,
+.button-spinner {
+  animation: spin 800ms linear infinite;
+  border: 3px solid #dbe3e5;
+  border-radius: 999px;
+  border-top-color: #2f7568;
+}
+
+.spinner {
+  height: 34px;
+  width: 34px;
+}
+
+.button-spinner {
+  border-color: rgba(255, 255, 255, 0.38);
+  border-top-color: #ffffff;
+  height: 18px;
+  width: 18px;
+}
+
+.dashboard {
+  display: grid;
+  gap: 24px;
+  padding: 30px;
+}
+
+.profile {
+  border: 1px solid #dbe3e5;
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 16px;
+}
+
+.profile span {
+  color: #5f6f76;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.profile strong {
+  overflow-wrap: anywhere;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* To-Do Styles */
+.todo-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.todo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.todo-form input {
+  width: 100%;
+}
+
+.todo-form .primary-button {
+  background: #2f7568;
+  color: white;
+  margin-top: 4px;
+  height: 46px;
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f8fbfc;
+  border: 1px solid #dbe3e5;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.todo-item:hover {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.todo-item.completed {
+  opacity: 0.6;
+  background: #f1f4f5;
+}
+
+.todo-item.completed span {
+  text-decoration: line-through;
+  color: #8c9fa6;
+}
+
+.todo-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  flex-grow: 1;
+  font-weight: 500;
+  color: #172026;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.todo-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2f7568;
+}
+
+.delete-button {
+  background: transparent;
+  color: #bc5540;
+  border: none;
+  font-size: 1.5rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  min-height: auto;
+  margin: 0;
+  opacity: 0.7;
+}
+
+.delete-button:hover {
+  opacity: 1;
+  background: rgba(188, 85, 64, 0.1);
+}
+
+.logout-button {
+  margin-top: 16px;
+}
+
+.todo-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.due-date-badge {
+  font-size: 0.75rem;
+  color: #5f6f76;
+  font-weight: 600;
+  background: #eef2f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.todo-item.overdue {
+  border-left: 4px solid #bc5540;
+}
+
+.todo-item.overdue .due-date-badge {
+  color: #bc5540;
+  background: #ffe8e2;
+}
+
+.todo-item.due-soon {
+  border-left: 4px solid #d49520;
+}
+
+.todo-item.due-soon .due-date-badge {
+  color: #a87413;
+  background: #fdf2d9;
+}
+
+/* Alert Container */
+.alert-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 9999;
+}
+
+.toast-alert {
+  background: #ffffff;
+  border-left: 4px solid #d49520;
+  box-shadow: 0 8px 24px rgba(23, 32, 38, 0.15);
+  padding: 14px 20px;
+  border-radius: 6px;
+  font-weight: 700;
+  color: #172026;
+  animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 520px) {
+  .page {
+    padding: 16px;
+  }
+
+  .auth-panel,
+  .dashboard {
+    padding: 22px;
+  }
+
+  h1 {
+    font-size: 1.7rem;
+  }
+}
