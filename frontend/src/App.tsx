@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 
 const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
   ? "http://127.0.0.1:8000" 
-  : "/api"; // On Vercel, API routes are prefixed with /api via vercel.json rewrites
+  : "/_/backend"; // Matches the experimentalServices backend routePrefix in vercel.json
 const TOKEN_KEY = "todo_auth_token";
 
 type View = "login" | "register" | "protected";
