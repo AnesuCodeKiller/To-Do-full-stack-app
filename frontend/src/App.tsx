@@ -130,6 +130,7 @@ function App() {
   const [newTodoDueDate, setNewTodoDueDate] = useState("");
   const [isFetchingTodos, setIsFetchingTodos] = useState(false);
   const [activeAlerts, setActiveAlerts] = useState<string[]>([]);
+  const alertedIds = useState(() => new Set<number>())[0]; // Persistent set for alerted IDs
 
   useEffect(() => {
     if (!token) {
@@ -190,10 +191,13 @@ function App() {
       todos.forEach(todo => {
         if (!todo.completed && todo.due_date) {
           const dueDate = new Date(todo.due_date);
-          const timeDiff = dueDate.getTime() - now.getTime();
+          const timeDiff = now.getTime() - dueDate.getTime();
           
-          if (timeDiff > 0 && timeDiff <= 10000) {
+          // Alert if it's due now or became due in the last 30 seconds, 
+          // and we haven't alerted for it yet.
+          if (timeDiff >= 0 && timeDiff <= 30000 && !alertedIds.has(todo.id)) {
             newAlerts.push(`Task due now: ${todo.title}`);
+            alertedIds.add(todo.id);
           }
         }
       });
@@ -204,10 +208,10 @@ function App() {
           setActiveAlerts(prev => prev.filter(a => !newAlerts.includes(a)));
         }, 8000);
       }
-    }, 10000);
+    }, 5000);
     
     return () => clearInterval(interval);
-  }, [todos, view]);
+  }, [todos, view, alertedIds]);
 
   async function fetchTodos() {
     setIsFetchingTodos(true);
