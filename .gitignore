@@ -3,3 +3,7 @@ _pycache__
 *.pyc
 .env
 .DS_Store
+.env1
+*.log
+*.db
+dist
