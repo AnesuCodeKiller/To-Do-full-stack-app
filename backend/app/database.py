@@ -1,137 +1,153 @@
-import sqlite3
-from pathlib import Path
-from typing import Optional
+import os
+import psycopg2
+import psycopg2.extras
+from typing import Optional, List, Any
 
+# Get the database URL from environment variables
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-DB_PATH = Path(__file__).resolve().parents[1] / "todo_auth.db"
-
-
-def get_connection() -> sqlite3.Connection:
-    connection = sqlite3.connect(DB_PATH)
-    connection.row_factory = sqlite3.Row
-    return connection
+def get_connection():
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL environment variable is not set. Please configure it in Vercel or your .env file.")
+    
+    # Connect to the Postgres database
+    conn = psycopg2.connect(DATABASE_URL)
+    return conn
 
 
 def init_db() -> None:
-    with get_connection() as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                email TEXT UNIQUE,
-                password_hash TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    """Initialize the database tables if they don't exist."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            # Postgres uses SERIAL for auto-incrementing IDs
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    username TEXT NOT NULL UNIQUE,
+                    email TEXT UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
             )
-            """
-        )
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS todos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                completed BOOLEAN NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS todos (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    title TEXT NOT NULL,
+                    completed BOOLEAN NOT NULL DEFAULT FALSE,
+                    due_date TEXT,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
             )
-            """
-        )
-        try:
-            connection.execute("ALTER TABLE todos ADD COLUMN due_date TEXT")
-        except sqlite3.OperationalError:
-            pass
+        conn.commit()
 
 
-def create_user(username: str, email: Optional[str], password_hash: str) -> sqlite3.Row:
-    with get_connection() as connection:
-        cursor = connection.execute(
-            """
-            INSERT INTO users (username, email, password_hash)
-            VALUES (?, ?, ?)
-            """,
-            (username, email, password_hash),
-        )
-        user_id = cursor.lastrowid
-        user = connection.execute(
-            "SELECT id, username, email, created_at FROM users WHERE id = ?",
-            (user_id,),
-        ).fetchone()
-        if user is None:
-            raise RuntimeError("Created user could not be loaded")
-        return user
+def create_user(username: str, email: Optional[str], password_hash: str) -> Any:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO users (username, email, password_hash)
+                VALUES (%s, %s, %s)
+                RETURNING id, username, email, created_at
+                """,
+                (username, email, password_hash),
+            )
+            user = cur.fetchone()
+            conn.commit()
+            if user is None:
+                raise RuntimeError("Created user could not be loaded")
+            return user
 
 
-def get_user_by_username(username: str) -> Optional[sqlite3.Row]:
-    with get_connection() as connection:
-        return connection.execute(
-            "SELECT id, username, email, password_hash, created_at FROM users WHERE username = ?",
-            (username,),
-        ).fetchone()
+def get_user_by_username(username: str) -> Optional[Any]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute(
+                "SELECT id, username, email, password_hash, created_at FROM users WHERE username = %s",
+                (username,),
+            )
+            return cur.fetchone()
 
 
-def get_user_by_id(user_id: int) -> Optional[sqlite3.Row]:
-    with get_connection() as connection:
-        return connection.execute(
-            "SELECT id, username, email, created_at FROM users WHERE id = ?",
-            (user_id,),
-        ).fetchone()
+def get_user_by_id(user_id: int) -> Optional[Any]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute(
+                "SELECT id, username, email, created_at FROM users WHERE id = %s",
+                (user_id,),
+            )
+            return cur.fetchone()
 
 
-def create_todo(user_id: int, title: str, due_date: Optional[str] = None) -> sqlite3.Row:
-    with get_connection() as connection:
-        cursor = connection.execute(
-            "INSERT INTO todos (user_id, title, completed, due_date) VALUES (?, ?, 0, ?)",
-            (user_id, title, due_date),
-        )
-          
-        todo_id = cursor.lastrowid
-        todo = connection.execute(
-            "SELECT id, user_id, title, completed, due_date FROM todos WHERE id = ?",
-            (todo_id,),
-        ).fetchone()
-        if todo is None:
-            raise RuntimeError("Created todo could not be loaded")
-        return todo
+def create_todo(user_id: int, title: str, due_date: Optional[str] = None) -> Any:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO todos (user_id, title, completed, due_date) 
+                VALUES (%s, %s, FALSE, %s) 
+                RETURNING id, user_id, title, completed, due_date
+                """,
+                (user_id, title, due_date),
+            )
+            todo = cur.fetchone()
+            conn.commit()
+            if todo is None:
+                raise RuntimeError("Created todo could not be loaded")
+            return todo
 
 
-def get_todos_by_user(user_id: int) -> list[sqlite3.Row]:
-    with get_connection() as connection:
-        return connection.execute(
-            "SELECT id, user_id, title, completed, due_date FROM todos WHERE user_id = ? ORDER BY id DESC",
-            (user_id,),
-        ).fetchall()
+def get_todos_by_user(user_id: int) -> List[Any]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute(
+                "SELECT id, user_id, title, completed, due_date FROM todos WHERE user_id = %s ORDER BY id DESC",
+                (user_id,),
+            )
+            return cur.fetchall()
 
 
-def update_todo(user_id: int, todo_id: int, title: Optional[str] = None, completed: Optional[bool] = None, due_date: Optional[str] = None) -> Optional[sqlite3.Row]:
-    with get_connection() as connection:
-        todo = connection.execute("SELECT * FROM todos WHERE id = ? AND user_id = ?", (todo_id, user_id)).fetchone()
-        if not todo:
-            return None
-        
-        new_title = title if title is not None else todo["title"]
-        new_completed = completed if completed is not None else todo["completed"]
-        
-        if due_date == "":
-            new_due_date = None
-        else:
-            new_due_date = due_date if due_date is not None else todo["due_date"]
-        
-        connection.execute(
-            "UPDATE todos SET title = ?, completed = ?, due_date = ? WHERE id = ? AND user_id = ?",
-            (new_title, new_completed, new_due_date, todo_id, user_id),
-        )
-        
-        return connection.execute(
-            "SELECT id, user_id, title, completed, due_date FROM todos WHERE id = ?",
-            (todo_id,),
-        ).fetchone()
+def update_todo(user_id: int, todo_id: int, title: Optional[str] = None, completed: Optional[bool] = None, due_date: Optional[str] = None) -> Optional[Any]:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute("SELECT * FROM todos WHERE id = %s AND user_id = %s", (todo_id, user_id))
+            todo = cur.fetchone()
+            if not todo:
+                return None
+            
+            new_title = title if title is not None else todo["title"]
+            new_completed = completed if completed is not None else todo["completed"]
+            
+            if due_date == "":
+                new_due_date = None
+            else:
+                new_due_date = due_date if due_date is not None else todo["due_date"]
+            
+            cur.execute(
+                """
+                UPDATE todos 
+                SET title = %s, completed = %s, due_date = %s 
+                WHERE id = %s AND user_id = %s
+                RETURNING id, user_id, title, completed, due_date
+                """,
+                (new_title, new_completed, new_due_date, todo_id, user_id),
+            )
+            updated_todo = cur.fetchone()
+            conn.commit()
+            return updated_todo
 
 
 def delete_todo(user_id: int, todo_id: int) -> bool:
-    with get_connection() as connection:
-        cursor = connection.execute(
-            "DELETE FROM todos WHERE id = ? AND user_id = ?",
-            (todo_id, user_id)
-        )
-        return cursor.rowcount > 0
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM todos WHERE id = %s AND user_id = %s",
+                (todo_id, user_id)
+            )
+            conn.commit()
+            return cur.rowcount > 0

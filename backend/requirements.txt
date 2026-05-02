@@ -10,4 +10,5 @@ passlib
 passlib[bcrypt]
 SQLAlchemy
 asyncpg
+psycopg2-binary
 fastapi-users[sqlalchemy]
